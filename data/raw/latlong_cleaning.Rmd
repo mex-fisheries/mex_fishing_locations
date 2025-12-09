@@ -1,0 +1,37 @@
+---
+title: "latlong_cleaning"
+author: "JD Reigrut"
+date: "2025-12-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Specify packages needed
+pacman::p_load(
+  here,
+  readxl,
+  tidyverse,
+  sf
+)
+```
+
+Loading initial latlong data
+```{r Initial Data}
+latlong <- read_excel(path = here("data", "raw", "atlas_locations_raw.xlsx"),
+                            sheet = "INDEX") %>%
+  select(-Num)
+```
+
+Converting to sf object
+```{r}
+sf <- st_as_sf(latlong, coords = c("Longitud", "Latitud"), crs = 4326)
+```
+
+Writing geopackage
+```{r}
+clean_path <- here("data", "processed", "landingsites.gpkg")
+st_write(sf, clean_path)
+```
+
