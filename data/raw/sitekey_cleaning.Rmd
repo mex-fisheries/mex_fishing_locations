@@ -147,8 +147,8 @@ key_check <- key_check %>% filter(count > 1)
 Using locality name, manually selecting one location per key for problem keys
 ```{r}
 sites_key_geo <- sites_key_geo %>%
-  #MEULLE (1.0081)
-  filter(!(Clave == "1.0081" & Localidad_geo != "MEULLE")) %>%
+  #MUELLE (1.0081)
+  filter(!(Clave == "1.0081" & Localidad_geo != "MUELLE")) %>%
   #BOCANA EL ROSARIO (1.0236)
   filter(!(Clave == "1.0236" & Localidad_geo != "ROSARIO BOCANA EL")) %>%
   #PUERTO CORTEZ (2.0306)
