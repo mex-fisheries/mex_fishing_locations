@@ -1,0 +1,113 @@
+---
+title: "Site Key Cleaning"
+author: "JD Reigrut"
+date: "2025-12-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Specify packages needed
+pacman::p_load(
+  here,
+  readxl,
+  tidyverse,
+  stringi
+)
+```
+
+Baja West cleaning 
+```{r Initial Data}
+Baja_west <- read_excel(path = here("data", "raw", "atlas_locations_raw.xlsx"),
+                            sheet = "BAJA_WEST")
+```
+
+```{r}
+Baja_west <- Baja_west %>%
+  mutate(
+    #Reformatting Clave column to accuratly reflect the four decimal ID
+    Clave = format(
+      round(as.numeric(stri_trim_both(Clave)), 4),  
+      nsmall = 4)) %>% 
+  select(-Num)
+```
+
+Baja East cleaning 
+```{r Initial Data}
+Baja_east <- read_excel(path = here("data", "raw", "atlas_locations_raw.xlsx"),
+                            sheet = "BAJA_EAST")
+```
+
+```{r}
+Baja_east <- Baja_east %>%
+  mutate(
+    #Reformatting Clave column to accuratly reflect the four decimal ID
+    Clave = format(
+      round(as.numeric(stri_trim_both(Clave)), 4),  
+      nsmall = 4)) %>% 
+  select(-Num, -Mapa)
+```
+
+Baja Sur West cleaning 
+```{r Initial Data}
+Bajasur_west <- read_excel(path = here("data", "raw", "atlas_locations_raw.xlsx"),
+                            sheet = "BAJASUR_WEST")
+```
+
+```{r}
+Bajasur_west <- Bajasur_west %>%
+  mutate(
+    #Reformatting Clave column to accuratly reflect the four decimal ID
+    Clave = format(
+      round(as.numeric(stri_trim_both(Clave)), 4),  
+      nsmall = 4)) %>% 
+  select(-Num, -Mapa)
+```
+
+Baja Sur East cleaning 
+```{r Initial Data}
+Bajasur_east <- read_excel(path = here("data", "raw", "atlas_locations_raw.xlsx"),
+                            sheet = "BAJASUR_EAST")
+```
+
+```{r}
+Bajasur_east <- Bajasur_east %>%
+  mutate(
+    #Reformatting Clave column to accuratly reflect the four decimal ID
+    Clave = format(
+      round(as.numeric(stri_trim_both(Clave)), 4),  
+      nsmall = 4)) %>% 
+  select(-Num, -Mapa)
+```
+
+Sonora cleaning 
+```{r Initial Data}
+Sonora <- read_excel(path = here("data", "raw", "atlas_locations_raw.xlsx"),
+                            sheet = "SONORA")
+```
+
+```{r}
+Sonora <- Sonora %>%
+   select(-NUM., -MAPA) %>%
+  rename(Localidad = LOCALIDAD,
+         Clave = CLAVE, 
+         Captura = CAPTURA,
+         Desembarque = DESEMBAR.) %>%
+  mutate(
+    #Reformatting Clave column to accuratly reflect the four decimal ID
+    Clave = format(
+      round(as.numeric(stri_trim_both(Clave)), 4),  
+      nsmall = 4))
+```
+
+Combining into one comprehensive sheet
+```{r}
+sites_key <- rbind(Baja_east, Baja_west, Bajasur_east, Bajasur_west, Sonora)
+```
+
+Saving final clean csv
+```{r Saving final csv}
+clean_path <- here("data", "processed", "sites_key.csv")
+write.csv(sites_key, clean_path)
+```
