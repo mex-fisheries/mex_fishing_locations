@@ -106,8 +106,59 @@ Combining into one comprehensive sheet
 sites_key <- rbind(Baja_east, Baja_west, Bajasur_east, Bajasur_west, Sonora)
 ```
 
+
+Adding geospatial reference to the cleaned sites
+```{r}
+gpkg <- st_read(dsn = here("data", "processed", "landingsites.gpkg")) %>%
+  mutate(Clave = as.character(Clave),
+         Clave = trimws(Clave))
+
+sites_key_geo <- sites_key %>%
+  left_join(gpkg, by = "Clave") %>%
+  rename(Localidad_geo = Localidad.y,
+         Localidad_key = Localidad.x)
+```
+A few problematic sites exist where a single key is mapped to different locations 
+
+Checking which keys in the site list match multiple rows in the geopackage
+```{r}
+#Evaluating how many times each key appears in the geopackage
+key_count <- gpkg %>% count(Clave, name = "count")
+
+#Join with site keys
+site_check <- sites_key %>% left_join(key_count, by = "Clave")
+
+#Counting rows where count>1
+site_check <- site_check %>% filter(count > 1)
+```
+
+Checking which keys in the geopackage match multiple rows in the site list
+```{r}
+#Evaluating how many times each key appears in the geopackage
+site_count <- sites_key %>% count(Clave, name = "count")
+
+#Join with site keys
+key_check <- site_count %>% left_join(gpkg, by = "Clave")
+
+#Counting rows where count>1
+key_check <- key_check %>% filter(count > 1)
+```
+
+Using locality name, manually selecting one location per key for problem keys
+```{r}
+sites_key_geo <- sites_key_geo %>%
+  #MEULLE (1.0081)
+  filter(!(Clave == "1.0081" & Localidad_geo != "MEULLE")) %>%
+  #BOCANA EL ROSARIO (1.0236)
+  filter(!(Clave == "1.0236" & Localidad_geo != "ROSARIO BOCANA EL")) %>%
+  #PUERTO CORTEZ (2.0306)
+  filter(!(Clave == "2.0306" & Localidad_geo != "CORTEZ PUERTO")) %>%
+  #BOCA DE PIEDRA (5.0321)
+  filter(!(Clave == "5.0321" & Localidad_geo != "PIEDRA BOCA DE")) 
+```
+
 Saving final clean csv
 ```{r Saving final csv}
 clean_path <- here("data", "processed", "sites_key.csv")
-write.csv(sites_key, clean_path)
+write.csv(sites_key_geo, clean_path)
 ```
