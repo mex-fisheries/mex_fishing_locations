@@ -1,8 +1,10 @@
 ---
 title: "Site Key Cleaning"
-author: "JD Reigrut"
+author: "JD Reigrut, Juan Carlos Villaseñor-Derbez"
 date: "2025-12-09"
-output: html_document
+format:
+  html:
+    toc: true
 ---
 
 ```{r setup, include=FALSE}
@@ -13,18 +15,18 @@ pacman::p_load(
   here,
   readxl,
   tidyverse,
-  stringi
+  stringi,
+  sf
 )
 ```
 
-Baja West cleaning 
-```{r Initial Data}
-Baja_west <- read_excel(path = here("data", "raw", "atlas_locations_raw.xlsx"),
-                            sheet = "BAJA_WEST")
-```
+# Step 1) Clear each group of sites
+
+## Baja West cleaning 
 
 ```{r}
-Baja_west <- Baja_west %>%
+Baja_west <- read_excel(path = here("data", "raw", "atlas_locations_raw.xlsx"),
+                            sheet = "BAJA_WEST") %>%
   mutate(
     #Reformatting Clave column to accuratly reflect the four decimal ID
     Clave = format(
@@ -33,14 +35,11 @@ Baja_west <- Baja_west %>%
   select(-Num)
 ```
 
-Baja East cleaning 
-```{r Initial Data}
+## Baja East cleaning 
+
+```{r}
 Baja_east <- read_excel(path = here("data", "raw", "atlas_locations_raw.xlsx"),
-                            sheet = "BAJA_EAST")
-```
-
-```{r}
-Baja_east <- Baja_east %>%
+                            sheet = "BAJA_EAST") |> 
   mutate(
     #Reformatting Clave column to accuratly reflect the four decimal ID
     Clave = format(
@@ -49,14 +48,11 @@ Baja_east <- Baja_east %>%
   select(-Num, -Mapa)
 ```
 
-Baja Sur West cleaning 
-```{r Initial Data}
+## Baja Sur West cleaning 
+
+```{r}
 Bajasur_west <- read_excel(path = here("data", "raw", "atlas_locations_raw.xlsx"),
-                            sheet = "BAJASUR_WEST")
-```
-
-```{r}
-Bajasur_west <- Bajasur_west %>%
+                            sheet = "BAJASUR_WEST") %>%
   mutate(
     #Reformatting Clave column to accuratly reflect the four decimal ID
     Clave = format(
@@ -65,14 +61,11 @@ Bajasur_west <- Bajasur_west %>%
   select(-Num, -Mapa)
 ```
 
-Baja Sur East cleaning 
-```{r Initial Data}
+## Baja Sur East cleaning 
+
+```{r}
 Bajasur_east <- read_excel(path = here("data", "raw", "atlas_locations_raw.xlsx"),
-                            sheet = "BAJASUR_EAST")
-```
-
-```{r}
-Bajasur_east <- Bajasur_east %>%
+                            sheet = "BAJASUR_EAST") %>%
   mutate(
     #Reformatting Clave column to accuratly reflect the four decimal ID
     Clave = format(
@@ -81,14 +74,11 @@ Bajasur_east <- Bajasur_east %>%
   select(-Num, -Mapa)
 ```
 
-Sonora cleaning 
-```{r Initial Data}
-Sonora <- read_excel(path = here("data", "raw", "atlas_locations_raw.xlsx"),
-                            sheet = "SONORA")
-```
+## Sonora cleaning 
 
 ```{r}
-Sonora <- Sonora %>%
+Sonora <- read_excel(path = here("data", "raw", "atlas_locations_raw.xlsx"),
+                            sheet = "SONORA") %>%
    select(-NUM., -MAPA) %>%
   rename(Localidad = LOCALIDAD,
          Clave = CLAVE, 
@@ -101,13 +91,19 @@ Sonora <- Sonora %>%
       nsmall = 4))
 ```
 
-Combining into one comprehensive sheet
+# Step 2) Combining each group into one comprehensive data.frame
+
 ```{r}
-sites_key <- rbind(Baja_east, Baja_west, Bajasur_east, Bajasur_west, Sonora)
+sites_key <- rbind(Baja_east,
+                   Baja_west,
+                   Bajasur_east,
+                   Bajasur_west,
+                   Sonora)
 ```
 
 
-Adding geospatial reference to the cleaned sites
+# Step 3) Add geospatial reference to the cleaned sites
+
 ```{r}
 gpkg <- st_read(dsn = here("data", "processed", "landingsites.gpkg")) %>%
   mutate(Clave = as.character(Clave),
@@ -116,11 +112,16 @@ gpkg <- st_read(dsn = here("data", "processed", "landingsites.gpkg")) %>%
 sites_key_geo <- sites_key %>%
   left_join(gpkg, by = "Clave") %>%
   rename(Localidad_geo = Localidad.y,
-         Localidad_key = Localidad.x)
+         Localidad_key = Localidad.x) |> 
+  st_as_sf(crs = "EPSG:4326")
 ```
+
+# Step 4) Minor cleanup after join
+
 A few problematic sites exist where a single key is mapped to different locations 
 
-Checking which keys in the site list match multiple rows in the geopackage
+## Check which keys in the site list match multiple rows in the geopackage
+
 ```{r}
 #Evaluating how many times each key appears in the geopackage
 key_count <- gpkg %>% count(Clave, name = "count")
@@ -132,7 +133,8 @@ site_check <- sites_key %>% left_join(key_count, by = "Clave")
 site_check <- site_check %>% filter(count > 1)
 ```
 
-Checking which keys in the geopackage match multiple rows in the site list
+## Check which keys in the geopackage match multiple rows in the site list
+
 ```{r}
 #Evaluating how many times each key appears in the geopackage
 site_count <- sites_key %>% count(Clave, name = "count")
@@ -144,7 +146,10 @@ key_check <- site_count %>% left_join(gpkg, by = "Clave")
 key_check <- key_check %>% filter(count > 1)
 ```
 
+## Fix duplicates
+
 Using locality name, manually selecting one location per key for problem keys
+
 ```{r}
 sites_key_geo <- sites_key_geo %>%
   #MUELLE (1.0081)
@@ -154,11 +159,21 @@ sites_key_geo <- sites_key_geo %>%
   #PUERTO CORTEZ (2.0306)
   filter(!(Clave == "2.0306" & Localidad_geo != "CORTEZ PUERTO")) %>%
   #BOCA DE PIEDRA (5.0321)
-  filter(!(Clave == "5.0321" & Localidad_geo != "PIEDRA BOCA DE")) 
+  filter(!(Clave == "5.0321" & Localidad_geo != "PIEDRA BOCA DE")) %>% 
+  # Remove empty geometries
+  filter(!st_is_empty(.))
 ```
 
-Saving final clean csv
+## Step 4) Visualize data before exporting
+
+```{r}
+mapview::mapview(sites_key_geo)
+```
+
+
+## Step 5) Saving final clean geopackage
+
 ```{r Saving final csv}
-clean_path <- here("data", "processed", "sites_key.csv")
-write.csv(sites_key_geo, clean_path)
+clean_path <- here("data", "processed", "sites_key.gpkg")
+write_sf(sites_key_geo, clean_path)
 ```
