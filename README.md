@@ -1,6 +1,4 @@
-# mex_fishing_locations
-
-A Geospatial Dataset of Landing Sites in Mexico. 
+# A Geospatial Dataset of Landing Sites in Mexico
 
 ## Data sources:
 
