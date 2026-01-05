@@ -164,14 +164,32 @@ sites_key_geo <- sites_key_geo %>%
   filter(!st_is_empty(.))
 ```
 
-## Step 4) Visualize data before exporting
+# Step 5) Final cleaning 
+
+## Removing column of duplicate site names 
+```{r}
+sites_key_geo <- subset(sites_key_geo, select = -Localidad_geo)
+```
+
+## Evaluating how many columns do not have associated coordinates
+```{r}
+sites_key_geo %>% 
+  summarise(
+    na_geom = sum(is.na(geom)),         
+    empty_geom = sum(st_is_empty(geom)) 
+  )
+#No columns with NAs or empty values for associated coordinates
+#1,540 locations with geographic coordinate values
+```
+
+# Step 6) Visualize data before exporting
 
 ```{r}
 mapview::mapview(sites_key_geo)
 ```
 
 
-## Step 5) Saving final clean geopackage
+# Step 7) Saving final clean geopackage
 
 ```{r Saving final csv}
 clean_path <- here("data", "processed", "sites_key.gpkg")
