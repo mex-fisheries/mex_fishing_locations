@@ -17,19 +17,21 @@ pacman::p_load(
 )
 ```
 
-Loading initial latlong data
+# Step 1) Loading initial latlong data
 ```{r Initial Data}
 latlong <- read_excel(path = here("data", "raw", "atlas_locations_raw.xlsx"),
                             sheet = "INDEX") %>%
   select(-Num)
 ```
 
-Converting to sf object
+# Step 2) Converting to sf object
 ```{r}
 sf <- st_as_sf(latlong, coords = c("Longitud", "Latitud"), crs = 4326)
 ```
 
-Writing geopackage
+#Step 3) Writing geopackage
+
+Geopackage contains columns of location name from the raw coordinates data columns (Localidad), Atlas specific site key (Clave), and coordinate point (geometry).
 ```{r}
 clean_path <- here("data", "processed", "landingsites.gpkg")
 st_write(sf, clean_path)
